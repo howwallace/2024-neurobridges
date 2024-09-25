@@ -256,6 +256,43 @@ def fit_depth(df, eps=1e-3):
 
 
 # %%
+# fits by subject -- free
+
+
+vmin = 1e-12
+
+s, e_CT, e_CA, e_SA, e_ST, ll_free, bic_free = fit_free(df)
+print(ll_free)
+print(bic_(4, len(df), ll_free))
+
+res = []
+for subject in subjects:
+    df_subject = df[df['Subject'] == subject]
+    res.append(fit_free(df_subject))
+ss, ee_CT, ee_CA, ee_SA, ee_ST, lll_free, bbic_free = np.array(res).T
+
+
+fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 3))
+
+im = ax1.scatter(ee_CT, ee_CA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+cbar = fig.colorbar(im)
+ax1.scatter(e_CT, e_CA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+
+im = ax2.scatter(ee_ST, ee_SA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+cbar = fig.colorbar(im)
+ax2.scatter(e_ST, e_SA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+
+format_ax_eps(fig, ax1, '$\epsilon_{CT}$', '$\epsilon_{CA}$')
+format_ax_eps(fig, ax2, '$\epsilon_{ST}$', '$\epsilon_{SA}$')
+
+fig.tight_layout()
+plt.savefig('fits_subjects_free.svg')
+plt.savefig('fits_subjects_free.png', dpi=500)
+plt.show()
+
+
+
+# %%
 # fits by subject
 
 vmin = 1e-12
@@ -307,6 +344,47 @@ plt.savefig('fits_subjects_depth.png', dpi=500)
 plt.show()
 
 
+
+# %%
+# fits by age group -- free
+
+w = 12
+
+res = []
+age_space = np.linspace(np.min(ages), np.max(ages), 30)
+for age in tqdm.tqdm(age_space):
+    df_agegroup = df[np.logical_and(df['Age'] > age - w, df['Age'] < age + w)]
+    res.append([*fit_free(df_agegroup), len(df_agegroup)])
+
+
+# symm
+
+ss, ee_CT, ee_CA, ee_SA, ee_ST, lll, bbic, nn = np.array(res).T
+
+t_n = 600
+
+fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(6, 3))
+ax1.plot(age_space[nn > t_n], ee_CT[nn > t_n], label='$\epsilon_{CT}$')
+ax1.plot(age_space[nn > t_n], ee_CA[nn > t_n], label='$\epsilon_{CA}$')
+ax1.plot(age_space[nn > t_n], ee_SA[nn > t_n], label='$\epsilon_{SA}$')
+ax1.plot(age_space[nn > t_n], ee_ST[nn > t_n], label='$\epsilon_{ST}$')
+
+ax1.set_ylim(*mlims(0, 4e-1))
+ax1.set_xlabel('age [months]')
+ax1.set_ylabel('$\epsilon^\mathrm{fit}$')
+ax1.set_box_aspect(1)
+ax1.legend()
+
+ax2.plot(age_space[nn > t_n], (lll / nn)[nn > t_n], c='k')
+ax2.set_ylabel('$LL / n$')
+ax2.set_box_aspect(1)
+
+fig.tight_layout()
+plt.savefig('fits_ages_free.svg')
+plt.savefig('fits_ages_free.png', dpi=500)
+plt.show()
+
+
 # %%
 # fits by age group (window w = 12 gives at least 6 participants per group)
 
@@ -346,16 +424,6 @@ fig.tight_layout()
 plt.savefig('fits_ages_symm.svg')
 plt.savefig('fits_ages_symm.png', dpi=500)
 plt.show()
-
-
-# # overlay
-
-# ss, ee_T, ee_A, lll, bbic, nn = np.array(res_depth).T
-
-# ax1.plot(age_space[nn > t_n], ee_T[nn > t_n], label='$\epsilon_T$', ls='dashed')
-# ax1.plot(age_space[nn > t_n], ee_A[nn > t_n], label='$\epsilon_A$', ls='dashed')
-
-
 
 
 # depth
@@ -421,42 +489,6 @@ print(ee_T)
 
 # fig.tight_layout()
 # plt.show()
-
-
-
-
-# %%
-
-vmin = 1e-12
-
-s, e_CT, e_CA, e_SA, e_ST, ll_free, bic_free = fit_free(df)
-print(ll_free)
-print(bic_(4, len(df), ll_free))
-
-res = []
-for subject in subjects:
-    df_subject = df[df['Subject'] == subject]
-    res.append(fit_free(df_subject))
-ss, ee_CT, ee_CA, ee_SA, ee_ST, lll_free, bbic_free = np.array(res).T
-
-
-fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 3))
-
-im = ax1.scatter(ee_CT, ee_CA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-cbar = fig.colorbar(im)
-ax1.scatter(e_CT, e_CA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-
-im = ax2.scatter(ee_ST, ee_SA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-cbar = fig.colorbar(im)
-ax2.scatter(e_ST, e_SA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-
-format_ax_eps(fig, ax1, '$\epsilon_{CT}$', '$\epsilon_{CA}$')
-format_ax_eps(fig, ax2, '$\epsilon_{ST}$', '$\epsilon_{SA}$')
-
-fig.tight_layout()
-plt.savefig('fits_subjects_free.svg')
-plt.savefig('fits_subjects_free.png', dpi=500)
-plt.show()
 
 
 
