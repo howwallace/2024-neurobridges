@@ -238,17 +238,27 @@ def log_likelihood_paramd_depth(e_T, e_A, p_switch_low, p_switch_high, df):
 def fit_depth(df, eps=1e-3):
     # to_minimize = lambda params: -1 * log_likelihood_paramd_depth(*params, df)
     # res = shgo(to_minimize, bounds=[(eps, 1/2), (eps, 1 - eps), (eps, 1 - eps), (eps, 1 - eps)])
-    to_minimize = lambda log_params: -1 * log_likelihood_paramd_depth(*np.exp(log_params), 1/4, 3/4, df)
-    res = shgo(to_minimize, bounds=np.log([(eps, 1/2), (eps, 1 - eps)]))
+    to_minimize = lambda params: -1 * log_likelihood_paramd_depth(*params, 1/4, 3/4, df)
+    res = shgo(to_minimize, bounds=[(eps, 1/2), (eps, 1 - eps)])
+
+    # to_minimize = lambda log_params: -1 * log_likelihood_paramd_depth(*np.exp(log_params), df)
+    # res = shgo(to_minimize, bounds=np.log([(eps, 1/2), (eps, 1 - eps), (eps, 1 - eps), (eps, 1 - eps)]))
+    # to_minimize = lambda log_params: -1 * log_likelihood_paramd_depth(*np.exp(log_params), 1/4, 3/4, df)
+    # res = shgo(to_minimize, bounds=np.log([(eps, 1/2), (eps, 1 - eps)]))
+
     ll = -1 * res.fun
-    return res.success, *np.exp(res.x), ll, bic_(2, len(df), ll)
+    return res.success, *res.x, ll, bic_(2, len(df), ll)
+    # return res.success, *np.exp(res.x), ll, bic_(2, len(df), ll)
+
+
+# df_agegroup = df[df['Age'] < 100]
+# fit_depth(df_agegroup)
 
 
 # %%
 # fits by subject
 
 vmin = 1e-12
-
 
 res_symm, res_depth = [], []
 for subject in tqdm.tqdm(subjects):
@@ -417,34 +427,37 @@ print(ee_T)
 
 # %%
 
-# vmin = 1e-12
+vmin = 1e-12
 
-# s, e_CT, e_CA, e_SA, e_ST, ll_free, bic_free = fit_free(df)
-# print(ll_free)
-# print(bic_(4, len(df), ll_free))
+s, e_CT, e_CA, e_SA, e_ST, ll_free, bic_free = fit_free(df)
+print(ll_free)
+print(bic_(4, len(df), ll_free))
 
-# res = []
-# for subject in subjects:
-#     df_subject = df[df['Subject'] == subject]
-#     res.append(fit_free(df_subject))
-# ss, ee_CT, ee_CA, ee_SA, ee_ST, lll_free, bbic_free = np.array(res).T
+res = []
+for subject in subjects:
+    df_subject = df[df['Subject'] == subject]
+    res.append(fit_free(df_subject))
+ss, ee_CT, ee_CA, ee_SA, ee_ST, lll_free, bbic_free = np.array(res).T
 
 
-# fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 3))
+fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 3))
 
-# im = ax1.scatter(ee_CT, ee_CA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-# cbar = fig.colorbar(im)
-# ax1.scatter(e_CT, e_CA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+im = ax1.scatter(ee_CT, ee_CA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+cbar = fig.colorbar(im)
+ax1.scatter(e_CT, e_CA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
 
-# im = ax2.scatter(ee_ST, ee_SA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
-# cbar = fig.colorbar(im)
-# ax2.scatter(e_ST, e_SA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+im = ax2.scatter(ee_ST, ee_SA, s=16, c=np.exp(lll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
+cbar = fig.colorbar(im)
+ax2.scatter(e_ST, e_SA, s=64, c=np.exp(ll_free), norm=LogNorm(vmin=vmin, vmax=1), cmap='Grays', edgecolors='k')
 
-# format_ax_eps(fig, ax1, '$\epsilon_{CT}$', '$\epsilon_{CA}$')
-# format_ax_eps(fig, ax2, '$\epsilon_{ST}$', '$\epsilon_{SA}$')
+format_ax_eps(fig, ax1, '$\epsilon_{CT}$', '$\epsilon_{CA}$')
+format_ax_eps(fig, ax2, '$\epsilon_{ST}$', '$\epsilon_{SA}$')
 
-# fig.tight_layout()
-# plt.show()
+fig.tight_layout()
+plt.savefig('fits_subjects_free.svg')
+plt.savefig('fits_subjects_free.png', dpi=500)
+plt.show()
+
 
 
 
